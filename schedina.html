@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>Fantaschedone – Schedina</title>
+  <link rel="stylesheet" href="css/stile.css">
+</head>
+<body>
+
+<div class="card">
+
+  <h2>⚽ Fantaschedone</h2>
+
+  <p id="utente"></p>
+  <p id="info"></p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Partita</th>
+        <th>Pronostico</th>
+        <th>Risultato</th>
+      </tr>
+    </thead>
+    <tbody id="tabella">
+      <tr><td colspan="4">⏳ Caricamento partite...</td></tr>
+    </tbody>
+  </table>
+
+  <br>
+  <button id="btnGioca" onclick="gioca()">Invia schedina</button>
+
+  <h3 id="esito"></h3>
+
+</div>
+
+<script>
+/* =========================
+   UTENTE
+========================= */
+let utente = localStorage.getItem("utente") || "demo";
+localStorage.setItem("utente", utente);
+document.getElementById("utente").innerText = "👤 Utente: " + utente;
+
+/* =========================
+   CONFIG GIORNATA
+========================= */
+const BLOCCO_GIORNATA = "2025-09-21T15:00";
+const DATA_PARTITE = "2025-09-21";
+const STAGIONE = 2025;
+
+/* ⬇️ INCOLLA QUI IL TUO URL RENDER */
+const BACKEND_URL = "https://fantaschedone-backend.onrender.com";
+
+/* ========================= */
+let partite = [];
+
+/* =========================
+   CARICA PARTITE (BACKEND)
+========================= */
+async function caricaPartite() {
+
+  try {
+    const r = await fetch(
+      `${BACKEND_URL}/partite?data=${DATA_PARTITE}&stagione=${STAGIONE}`
+    );
+
+    partite = await r.json();
+
+    if (!partite.length) {
+      document.getElementById("tabella").innerHTML =
+        "<tr><td colspan='4'>❌ Nessuna partita</td></tr>";
+      return;
+    }
+
+    disegna();
+
+  } catch (e) {
+    document.getElementById("tabella").innerHTML =
+      "<tr><td colspan='4'>❌ Errore backend</td></tr>";
+  }
+}
+
+/* =========================
+   DISEGNA TABELLA
+========================= */
+function disegna() {
+
+  let ora = new Date();
+  let blocco = new Date(BLOCCO_GIORNATA);
+  let chiusa = ora >= blocco;
+
+  document.getElementById("info").innerText =
+    chiusa ? "⛔ Giornata chiusa" : "⏰ Blocco: " + blocco.toLocaleString();
+
+  document.getElementById("btnGioca").disabled = chiusa;
+
+  let h = "";
+  partite.forEach((p, i) => {
+    h += `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${p.casa} - ${p.trasferta}</td>
+        <td>
+          <input type="radio" name="p${i}" value="1">1
+          <input type="radio" name="p${i}" value="X">X
+          <input type="radio" name="p${i}" value="2">2
+        </td>
+        <td>${p.risultato}</td>
+      </tr>
+    `;
+  });
+
+  document.getElementById("tabella").innerHTML = h;
+}
+
+/* =========================
+   CALCOLO PUNTI
+========================= */
+function gioca() {
+  let punti = 0;
+
+  partite.forEach((p, i) => {
+    let s = document.querySelector(`input[name="p${i}"]:checked`);
+    if (s && s.value === p.risultato) punti++;
+  });
+
+  document.getElementById("esito").innerText =
+    "✅ Punti giornata: " + punti;
+}
+
+/* =========================
+   AVVIO
+========================= */
+caricaPartite();
+</script>
+
+</body>
+</html>
